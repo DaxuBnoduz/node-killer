@@ -1,0 +1,46 @@
+{
+  "name": "node-killer",
+  "version": "0.1.0",
+  "description": "⚡️ Node Killer — macOS menubar app to monitor and terminate Node.js processes (aka your dev servers).",
+  "main": "src/main.js",
+  "author": "Adolfo Flores (https://github.com/adolfoflores)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/adolfoflores/node-killer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/adolfoflores/node-killer/issues"
+  },
+  "homepage": "https://github.com/adolfoflores/node-killer#readme",
+  "dependencies": {
+    "electron-store": "^8.1.0"
+  },
+  "scripts": {
+    "dev": "electron .",
+    "build": "electron-builder -m"
+  },
+  "devDependencies": {
+    "electron": "^38.1.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.nodekiller.app",
+    "productName": "Node-Killer",
+    "files": [
+      "src/**/*",
+      "package.json",
+      "LICENSE",
+      "README.md",
+      "assets/icons/node-killer.icns"
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "icon": "assets/icons/node-killer.icns",
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    }
+  }
+}

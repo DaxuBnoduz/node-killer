@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Preferences</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: "Inter", "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      body {
+        margin: 0;
+        padding: 20px 15px 15px;
+        background: #1c1f26;
+        color: #d1d5db;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+      }
+
+      h1 {
+        font-size: 22px;
+        margin: 0 0 16px;
+      }
+
+      section {
+        margin-bottom: 18px;
+        padding: 18px;
+        border-radius: 12px;
+        background: #232731;
+        border: 1px solid rgba(148, 163, 184, 0.12);
+      }
+
+      h2 {
+        font-size: 15px;
+        margin: 0 0 10px;
+        color: #f3f4f6;
+        font-weight: 600;
+      }
+
+      label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        cursor: pointer;
+      }
+
+      input[type="checkbox"],
+      input[type="radio"] {
+        transform: scale(1.05);
+        accent-color: #6366f1;
+      }
+
+      fieldset {
+        border: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: 6px;
+      }
+
+      .hint {
+        font-size: 12px;
+        color: #9ca3af;
+        margin: 6px 0 0 26px;
+      }
+
+      .hint strong {
+        font-weight: 600;
+        color: #e2e8f0;
+      }
+
+      .hidden {
+        display: none;
+      }
+
+      footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin-top: auto;
+      }
+
+      button {
+        border: 1px solid rgba(99, 102, 241, 0.4);
+        background: rgba(99, 102, 241, 0.18);
+        color: #f9fafb;
+        font-size: 13px;
+        padding: 6px 16px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background 0.2s ease, border-color 0.2s ease;
+      }
+
+      button:hover {
+        background: rgba(99, 102, 241, 0.3);
+        border-color: rgba(99, 102, 241, 0.6);
+      }
+
+      .group-content {
+        display: grid;
+        gap: 10px;
+      }
+
+      .footer-link {
+        font-size: 12px;
+        color: #9ca3af;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        user-select: none;
+      }
+
+      .footer-link:hover,
+      .footer-link:focus {
+        color: #e5e7eb;
+        outline: none;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>⚡️ Node Killer Preferences</h1>
+
+    <section>
+      <h2>General</h2>
+      <div class="group-content">
+        <label>
+          <input type="checkbox" id="autoLaunch" />
+          Launch at login
+        </label>
+        <!-- <p id="autoLaunchHint" class="hint hidden">Available only in packaged macOS builds.</p> -->
+        <label>
+          <input type="checkbox" id="allUsers" />
+          Show processes from all users
+        </label>
+      </div>
+    </section>
+
+    <section>
+      <h2>Auto-refresh interval</h2>
+      <fieldset id="refreshOptions">
+        <label>
+          <input type="radio" name="refreshMs" value="1000" />
+          1000 ms
+        </label>
+        <label>
+          <input type="radio" name="refreshMs" value="5000" />
+          5000 ms (default)
+        </label>
+        <label>
+          <input type="radio" name="refreshMs" value="10000" />
+          10000 ms
+        </label>
+        <label>
+          <input type="radio" name="refreshMs" value="paused" />
+          Paused (manual only)
+        </label>
+      </fieldset>
+    </section>
+
+    <section>
+      <h2>Status bar display</h2>
+      <fieldset id="displayModeOptions">
+        <label>
+          <input type="radio" name="displayMode" value="number" />
+          Number only (node: N)
+        </label>
+        <label>
+          <input type="radio" name="displayMode" value="icon-plus-number" />
+          Icon + number (⚡️ N)
+        </label>
+        <label>
+          <input type="radio" name="displayMode" value="icon-only" />
+          Icon only
+        </label>
+      </fieldset>
+    </section>
+
+    <footer>
+      <span id="repoLink" class="footer-link" role="link" tabindex="0">⚡️ github.com/adolfoflores/node-killer</span>
+      <button id="closeButton">Close</button>
+    </footer>
+
+    <script src="renderer.js" type="module"></script>
+  </body>
+</html>
