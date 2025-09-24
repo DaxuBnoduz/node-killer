@@ -5,6 +5,9 @@ const autoLaunchHint = document.querySelector('#autoLaunchHint');
 const allUsersCheckbox = document.querySelector('#allUsers');
 const refreshRadios = Array.from(document.querySelectorAll('input[name="refreshMs"]'));
 const displayModeRadios = Array.from(document.querySelectorAll('input[name="displayMode"]'));
+const processNodeCheckbox = document.querySelector('#processNode');
+const processViteCheckbox = document.querySelector('#processVite');
+const processBunCheckbox = document.querySelector('#processBun');
 const closeButton = document.querySelector('#closeButton');
 const repoLink = document.querySelector('#repoLink');
 
@@ -13,6 +16,11 @@ let state = {
   refreshMs: 5000,
   allUsers: false,
   displayMode: 'number',
+  processTypes: {
+    node: true,
+    vite: true,
+    bun: true,
+  },
 };
 let meta = {
   autoLaunchEditable: false,
@@ -48,6 +56,13 @@ function applyState() {
   displayModeRadios.forEach((radio) => {
     radio.checked = radio.value === state.displayMode;
   });
+
+  // Apply process types state
+  if (state.processTypes) {
+    processNodeCheckbox.checked = state.processTypes.node !== false;
+    processViteCheckbox.checked = state.processTypes.vite !== false;
+    processBunCheckbox.checked = state.processTypes.bun !== false;
+  }
 }
 
 function updateFromPayload(payload) {
@@ -102,6 +117,16 @@ async function handleDisplayModeChange(event) {
   }
 }
 
+async function handleProcessTypeChange(typeName, enabled) {
+  try {
+    const payload = await prefsApi.setProcessType(typeName, enabled);
+    updateFromPayload(payload);
+  } catch (error) {
+    console.error(`Failed to update process type ${typeName}:`, error);
+    await init();
+  }
+}
+
 async function init() {
   try {
     const payload = await prefsApi.get();
@@ -119,6 +144,9 @@ refreshRadios.forEach((radio) => {
 displayModeRadios.forEach((radio) => {
   radio.addEventListener('change', handleDisplayModeChange);
 });
+processNodeCheckbox.addEventListener('change', (e) => handleProcessTypeChange('node', e.target.checked));
+processViteCheckbox.addEventListener('change', (e) => handleProcessTypeChange('vite', e.target.checked));
+processBunCheckbox.addEventListener('change', (e) => handleProcessTypeChange('bun', e.target.checked));
 closeButton.addEventListener('click', () => window.close());
 repoLink.addEventListener('click', () => {
   prefsApi

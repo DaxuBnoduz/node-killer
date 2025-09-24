@@ -9,6 +9,11 @@ const defaults = {
   refreshMs: DEFAULT_REFRESH_MS,
   allUsers: false,
   displayMode: 'number',
+  processTypes: {
+    node: true,
+    vite: true,
+    bun: true
+  }
 };
 
 function parseRefreshEnv(value) {
@@ -96,12 +101,39 @@ function setDisplayMode(value) {
   return allowed;
 }
 
+function getProcessTypes() {
+  const stored = store.get('processTypes');
+  // Ensure we always return a complete object with all process types
+  return {
+    node: stored?.node !== false,
+    vite: stored?.vite !== false,
+    bun: stored?.bun !== false
+  };
+}
+
+function setProcessTypes(types) {
+  const sanitized = {
+    node: Boolean(types?.node),
+    vite: Boolean(types?.vite),
+    bun: Boolean(types?.bun)
+  };
+  store.set('processTypes', sanitized);
+  return sanitized;
+}
+
+function setProcessType(typeName, enabled) {
+  const current = getProcessTypes();
+  current[typeName] = Boolean(enabled);
+  return setProcessTypes(current);
+}
+
 function getAllPreferences() {
   return {
     autoLaunch: getAutoLaunch(),
     refreshMs: getRefreshMs(),
     allUsers: getAllUsers(),
     displayMode: getDisplayMode(),
+    processTypes: getProcessTypes(),
   };
 }
 
@@ -118,5 +150,8 @@ module.exports = {
   setAllUsers,
   getDisplayMode,
   setDisplayMode,
+  getProcessTypes,
+  setProcessTypes,
+  setProcessType,
   getAllPreferences,
 };

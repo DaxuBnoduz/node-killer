@@ -2,13 +2,61 @@ const { app, Menu, Tray, nativeImage, Notification, dialog, BrowserWindow, ipcMa
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { execFile } = require('child_process');
+const { execFile, exec } = require('child_process');
+const { promisify } = require('util');
 const prefs = require('./prefs');
 const { REFRESH_CHOICES, DEFAULT_REFRESH_MS } = prefs;
+
+const execAsync = promisify(exec);
 
 /**
  * ⚡️ Node Killer: a minimal macOS menubar app that hunts down and kills your stray Node.js processes.
  */
+
+const VITE_COMMAND_MARKERS = [
+  '/vite/bin/vite',
+  '/vite/bin/vite.js',
+  '/node_modules/vite/bin/vite',
+  '/node_modules/vite/bin/vite.js',
+  '/node_modules/vite/dist/node',
+  '/.pnpm/vite@',
+  '@vitejs/vite'
+];
+
+function looksLikeViteProcess(commandLine = '') {
+  const normalized = commandLine.toLowerCase().replace(/\\/g, '/');
+  return VITE_COMMAND_MARKERS.some((marker) => normalized.includes(marker));
+}
+
+// Process type configuration
+const PROCESS_TYPES = {
+  node: {
+    label: 'node',
+    lsofCommand: 'node',
+    classify: (commandLine) => {
+      // If it contains vite, classify as vite instead
+      if (looksLikeViteProcess(commandLine)) {
+        return null;
+      }
+      return 'node';
+    }
+  },
+  vite: {
+    label: 'vite',
+    lsofCommand: 'node', // Vite runs as node process
+    classify: (commandLine) => {
+      if (looksLikeViteProcess(commandLine)) {
+        return 'vite';
+      }
+      return null;
+    }
+  },
+  bun: {
+    label: 'bun',
+    lsofCommand: 'bun',
+    classify: () => 'bun'
+  }
+};
 
 let tray = null;
 let refreshTimeout = null;
@@ -140,9 +188,9 @@ async function killPid(pid) {
   return { pid, ok: false, step: 'SIGKILL', error: 'Process still alive after SIGKILL' };
 }
 
-function parseLsofOutputHuman(stdout) {
+function parseLsofOutputHuman(stdout, processCommand) {
   const lines = stdout.split(/\r?\n/);
-  const processes = new Map(); // pid -> { pid, ports: Set<number>, user }
+  const processes = new Map(); // pid -> { pid, ports: Set<number>, user, command }
 
   for (const line of lines) {
     if (!line || line.startsWith('COMMAND') || !/LISTEN/.test(line)) continue;
@@ -155,8 +203,12 @@ function parseLsofOutputHuman(stdout) {
     const pidNum = Number(parts[1]);
     const user = parts[2] || '';
 
-    // Keep processes whose COMMAND contains 'node' (exactly 'node' preferred)
-    if (!(command === 'node' || /\bnode(js)?\b/.test(command))) continue;
+    // Keep processes based on the command filter
+    if (processCommand === 'node') {
+      if (!(command === 'node' || /\bnode(js)?\b/.test(command))) continue;
+    } else if (processCommand === 'bun') {
+      if (!(command === 'bun' || /\bbun\b/.test(command))) continue;
+    }
     if (!Number.isFinite(pidNum)) continue;
 
     // Extract port(s)
@@ -164,7 +216,7 @@ function parseLsofOutputHuman(stdout) {
     const port = m ? Number(m[1]) : null;
 
     if (!processes.has(pidNum)) {
-      processes.set(pidNum, { pid: pidNum, user, ports: new Set() });
+      processes.set(pidNum, { pid: pidNum, user, ports: new Set(), command: processCommand });
     }
     if (port) processes.get(pidNum).ports.add(port);
   }
@@ -173,12 +225,13 @@ function parseLsofOutputHuman(stdout) {
     pid: p.pid,
     user: p.user,
     ports: Array.from(p.ports).sort((a, b) => a - b),
+    command: p.command,
   }));
 }
 
-function parseLsofOutputFields(stdout) {
+function parseLsofOutputFields(stdout, processCommand) {
   // Parse output from: lsof -F pcPn ...
-  const processes = new Map(); // pid -> { pid, ports: Set<number>, user?: string }
+  const processes = new Map(); // pid -> { pid, ports: Set<number>, user?: string, command }
   let currentPid = null;
   const lines = stdout.split(/\r?\n/);
   for (const line of lines) {
@@ -189,7 +242,7 @@ function parseLsofOutputFields(stdout) {
       const pid = Number(val);
       if (!Number.isFinite(pid)) { currentPid = null; continue; }
       currentPid = pid;
-      if (!processes.has(pid)) processes.set(pid, { pid, ports: new Set() });
+      if (!processes.has(pid)) processes.set(pid, { pid, ports: new Set(), command: processCommand });
     } else if (key === 'n') {
       // e.g., "TCP *:3000 (LISTEN)" or "TCP 127.0.0.1:5173 (LISTEN)"
       const m = val.match(/:(\d+)\s*\(LISTEN\)/);
@@ -202,6 +255,7 @@ function parseLsofOutputFields(stdout) {
   return Array.from(processes.values()).map((p) => ({
     pid: p.pid,
     ports: Array.from(p.ports).sort((a, b) => a - b),
+    command: p.command,
   }));
 }
 
@@ -209,13 +263,38 @@ function isNoProcessError(error) {
   return Boolean(error && (error.code === 1 || error.code === '1'));
 }
 
-function scanNodeListeners() {
+// Helper function to classify process type based on command line
+async function classifyProcess(pid, lsofCommand) {
+  try {
+    const { stdout } = await execAsync(`ps -p ${pid} -o command=`);
+    const commandLine = stdout.trim();
+
+    // Try to classify based on each enabled process type
+    for (const [typeName, typeConfig] of Object.entries(PROCESS_TYPES)) {
+      if (typeConfig.lsofCommand === lsofCommand) {
+        const classification = typeConfig.classify(commandLine);
+        if (classification) {
+          return classification;
+        }
+      }
+    }
+
+    // Default to the lsof command if no classification matches
+    return lsofCommand;
+  } catch (error) {
+    // If we can't get the command line, default to the lsof command
+    return lsofCommand;
+  }
+}
+
+// Scan for a specific process command (node or bun)
+function scanProcessCommand(processCommand) {
   return new Promise((resolve) => {
     const user = os.userInfo().username;
     const allUsers = prefs.getAllUsers();
     const onlyMine = !allUsers;
     // Use field format to drastically reduce output size
-    const args = ['-nP', '-iTCP', '-sTCP:LISTEN', '-a', '-c', 'node', '-F', 'pcPn'];
+    const args = ['-nP', '-iTCP', '-sTCP:LISTEN', '-a', '-c', processCommand, '-F', 'pcPn'];
     if (onlyMine) {
       args.push('-u', user);
     }
@@ -229,7 +308,7 @@ function scanNodeListeners() {
         }
 
         // Fallback to human parse without -F if field mode failed for any reason
-        const humanArgs = ['-nP', '-iTCP', '-sTCP:LISTEN', '-a', '-c', 'node'];
+        const humanArgs = ['-nP', '-iTCP', '-sTCP:LISTEN', '-a', '-c', processCommand];
         if (onlyMine) {
           humanArgs.push('-u', user);
         }
@@ -240,28 +319,68 @@ function scanNodeListeners() {
               resolve([]);
               return;
             }
-            console.debug('[lsof] error:', e2.message || e2);
+            console.debug(`[lsof ${processCommand}] error:`, e2.message || e2);
             resolve([]);
             return;
           }
           try {
-            resolve(parseLsofOutputHuman(out2 || ''));
+            resolve(parseLsofOutputHuman(out2 || '', processCommand));
           } catch (e) {
-            console.error('[parseLsofOutputHuman] failed:', e);
+            console.error(`[parseLsofOutputHuman ${processCommand}] failed:`, e);
             resolve([]);
           }
         });
         return;
       }
       try {
-        const results = parseLsofOutputFields(stdout || '');
+        const results = parseLsofOutputFields(stdout || '', processCommand);
         resolve(results);
       } catch (e) {
-        console.error('[parseLsofOutputFields] failed:', e);
+        console.error(`[parseLsofOutputFields ${processCommand}] failed:`, e);
         resolve([]);
       }
     });
   });
+}
+
+// Main function to scan for all enabled process types
+async function scanProcessListeners() {
+  const enabledTypes = prefs.getProcessTypes();
+  const allProcesses = [];
+  const seenPids = new Set();
+
+  // Determine which lsof commands we need to run
+  const lsofCommands = new Set();
+  for (const [typeName, enabled] of Object.entries(enabledTypes)) {
+    if (enabled && PROCESS_TYPES[typeName]) {
+      lsofCommands.add(PROCESS_TYPES[typeName].lsofCommand);
+    }
+  }
+
+  // Run lsof for each unique command
+  for (const lsofCommand of lsofCommands) {
+    const processes = await scanProcessCommand(lsofCommand);
+
+    // Classify and add processes
+    for (const process of processes) {
+      // Skip if we've already seen this PID (deduplication)
+      if (seenPids.has(process.pid)) continue;
+      seenPids.add(process.pid);
+
+      // Classify the process type
+      const processType = await classifyProcess(process.pid, lsofCommand);
+
+      // Only include if this type is enabled
+      if (enabledTypes[processType]) {
+        allProcesses.push({
+          ...process,
+          type: processType
+        });
+      }
+    }
+  }
+
+  return allProcesses;
 }
 
 function buildMenuAndUpdate(procs = []) {
@@ -269,7 +388,7 @@ function buildMenuAndUpdate(procs = []) {
   const count = latestProcesses.length;
 
   applyDisplayMode(count);
-  tray?.setToolTip(`Node Killer — processes: ${count}`);
+  tray?.setToolTip(`Node Killer — active processes: ${count}`);
 
   const items = [];
 
@@ -281,8 +400,9 @@ function buildMenuAndUpdate(procs = []) {
     } else if (ports.length > 1) {
       portsLabel = ` (ports ${ports.join(', ')})`;
     }
+    const processType = p.type || 'node';
     items.push({
-      label: `node ${p.pid}${portsLabel}`,
+      label: `${processType} ${p.pid}${portsLabel}`,
       click: async () => {
         const res = await killPid(p.pid);
         if (res.ok) {
@@ -308,7 +428,7 @@ function buildMenuAndUpdate(procs = []) {
           buttons: ['Cancel', 'Kill all'],
           defaultId: 1,
           cancelId: 0,
-          message: count === 1 ? 'Kill 1 Node process?' : `Kill ${count} Node processes?`,
+          message: count === 1 ? 'Kill 1 process?' : `Kill ${count} processes?`,
           detail: 'Each listed process will receive SIGTERM. If it survives, SIGKILL is sent next.',
         });
         if (response !== 1) {
@@ -331,7 +451,7 @@ function buildMenuAndUpdate(procs = []) {
         }
       }
       if (fail === 0) {
-        notify('✅ Kill all', `${ok} Node processes terminated.`);
+        notify('✅ Kill all', `${ok} processes terminated.`);
       } else {
         notify('⚠️ Kill all with issues', `${ok} succeeded, ${fail} failed — ${failed.join(', ')}`);
       }
@@ -367,13 +487,13 @@ function applyDisplayMode(count) {
   const mode = prefs.getDisplayMode();
   if (isMac) {
     if (mode === 'number') {
-      tray.setTitle(` node: ${count} `);
+      tray.setTitle(` active: ${count} `);
     } else if (mode === 'icon-plus-number') {
       tray.setTitle(`⚡️ ${count}`);
     } else if (mode === 'icon-only') {
       tray.setTitle('');
     } else {
-      tray.setTitle(` node: ${count} `);
+      tray.setTitle(` active: ${count} `);
     }
   }
 
@@ -419,7 +539,7 @@ function createPreferencesWindow() {
 
   const window = new BrowserWindow({
     width: 420,
-    height: 590,
+    height: 750,
     title: 'Preferences',
     resizable: false,
     minimizable: false,
@@ -470,7 +590,7 @@ async function performRefresh() {
   }
   refreshInFlight = true;
   try {
-    const procs = await scanNodeListeners();
+    const procs = await scanProcessListeners();
     buildMenuAndUpdate(procs);
     return true;
   } catch (e) {
@@ -569,6 +689,22 @@ ipcMain.handle('prefs:set-allUsers', async (_event, value) => {
 ipcMain.handle('prefs:set-display', async (_event, value) => {
   prefs.setDisplayMode(value);
   applyDisplayMode(latestProcesses.length);
+  rebuildMenuFromCache();
+  return buildPreferencesPayload();
+});
+
+ipcMain.handle('prefs:set-processType', async (_event, typeName, enabled) => {
+  prefs.setProcessType(typeName, enabled);
+  await performRefresh();
+  scheduleNextRefresh();
+  rebuildMenuFromCache();
+  return buildPreferencesPayload();
+});
+
+ipcMain.handle('prefs:set-processTypes', async (_event, types) => {
+  prefs.setProcessTypes(types);
+  await performRefresh();
+  scheduleNextRefresh();
   rebuildMenuFromCache();
   return buildPreferencesPayload();
 });

@@ -4,19 +4,20 @@
 [![macOS](https://img.shields.io/badge/platform-macOS-lightgrey?logo=apple)](https://developer.apple.com/macos/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
 
-⚡️ **Node Killer** — a sleek macOS menubar app that keeps an eye on your **Node.js** processes and lets you kill them with a click.
+⚡️ **Node Killer** — a sleek macOS menubar app that keeps an eye on your **Node.js**, **Vite**, and **Bun** dev servers and lets you kill them with a click.
 
 > 🖥️ Currently available only for Apple Silicon (arm64).
 
 ![Node Killer placeholder screenshot](assets/demo/node-killer-screenshot.png)
 
 ## ✨ Features
-- 📊 **Live counter** in the status bar — instantly shows how many Node.js processes are listening (`node: 4`).  
-- 🖱️ **Interactive tray menu** — lists every process by PID (and port when available).  
-- 🔪 **One-click kill** — terminate individual processes with success/error notifications.  
-- 💣 **Kill all** — wipe out every running Node process at once, with confirmation and summary.  
+- 📊 **Live counter** in the status bar — instantly shows how many dev servers (Node.js, Vite, Bun) are listening (`active: 4`).  
+- 🖱️ **Interactive tray menu** — lists every active process with its type, PID, and ports when available.  
+- 🔪 **One-click kill** — terminate individual Node/Vite/Bun processes with success/error notifications.  
+- 💣 **Kill all** — wipe out every running process of the enabled types, with confirmation and summary.  
 - 🔄 **Smart auto-refresh** — updates every 5 seconds plus a manual **Refresh** option.  
-- 🧰 **Customizable preferences** — adjust refresh rate, process filter, auto-launch, and status-bar display mode.
+- 🧰 **Customizable preferences** — adjust refresh rate, auto-launch, status-bar display mode, and which process types to monitor.
+- ✅ **Process type toggles** — enable or disable Node.js, Vite, and Bun scanning directly from Preferences.
 
 
 ## 🚀 Getting Started
@@ -66,9 +67,9 @@ Artifacts are written to `dist/`.
 
 
 ## 🧪 Manual Smoke Test
-1. Start a dev server (`next dev`, `vite dev`, etc.).
+1. Start one server for each runtime you use (`next dev`, `vite dev`, `bun dev`, etc.).
 2. Run `npm run dev` for Node Killer.
-3. Confirm the menu shows the processes with PID/port information.
+3. Confirm the menu shows each process with the correct label (node/vite/bun), ports, and that disabling a type in Preferences hides its entries.
 4. Terminate a single process, then try **Kill all** and review the notifications.
 
 
