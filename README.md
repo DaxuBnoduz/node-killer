@@ -8,7 +8,7 @@
 
 > 🖥️ Currently available only for Apple Silicon (arm64).
 
-![Node Killer placeholder screenshot](assets/demo/node-killer-screenshot.png)
+![Node Killer placeholder screenshot](assets/demo/node-killer-screenshot-0.2.0.png)
 
 ## ✨ Features
 - 📊 **Live counter** in the status bar — instantly shows how many dev servers (Node.js, Vite, Bun) are listening (`active: 4`).  

@@ -13,19 +13,12 @@ const execAsync = promisify(exec);
  * ⚡️ Node Killer: a minimal macOS menubar app that hunts down and kills your stray Node.js processes.
  */
 
-const VITE_COMMAND_MARKERS = [
-  '/vite/bin/vite',
-  '/vite/bin/vite.js',
-  '/node_modules/vite/bin/vite',
-  '/node_modules/vite/bin/vite.js',
-  '/node_modules/vite/dist/node',
-  '/.pnpm/vite@',
-  '@vitejs/vite'
-];
+const VITE_PATTERN = /(?:^|[=\/@\s"'`])vite(?:\.js)?(?=$|[\s"'`/:@])/;
 
 function looksLikeViteProcess(commandLine = '') {
+  if (!commandLine) return false;
   const normalized = commandLine.toLowerCase().replace(/\\/g, '/');
-  return VITE_COMMAND_MARKERS.some((marker) => normalized.includes(marker));
+  return VITE_PATTERN.test(normalized);
 }
 
 // Process type configuration
